@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>非全日制课表 · 计算机学院 · 响应式</title>
+    <title>非全日制课表 · 计算机学院 · 快速定位</title>
     <style>
         * {
             margin: 0;
@@ -93,6 +93,65 @@
         .marker-sat { background: #d3e2f7; }  /* 柔蓝 */
         .marker-sun { background: #cde9e1; }  /* 柔绿 */
 
+        /* 快速定位栏 */
+        .jump-bar {
+            background: #f8fbfe;
+            padding: 1rem 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #dde7f0;
+        }
+        .jump-label {
+            font-weight: 500;
+            color: #1b4b6e;
+        }
+        .jump-input {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex: 2;
+            min-width: 260px;
+        }
+        .jump-input input {
+            flex: 1;
+            padding: 0.7rem 1.2rem;
+            border: 1px solid #cbdbe9;
+            border-radius: 60px;
+            font-size: 0.95rem;
+            outline: none;
+            background: white;
+            transition: 0.15s;
+        }
+        .jump-input input:focus {
+            border-color: #7f9fbb;
+            box-shadow: 0 0 0 3px rgba(31, 94, 143, 0.1);
+        }
+        .jump-input button {
+            background: #1d4a73;
+            border: none;
+            color: white;
+            padding: 0.7rem 1.8rem;
+            border-radius: 60px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 1px solid #1d4a73;
+            white-space: nowrap;
+        }
+        .jump-input button:hover {
+            background: #25648f;
+        }
+        .hint {
+            font-size: 0.8rem;
+            color: #6f8ea6;
+            background: #ebf2fa;
+            padding: 0.3rem 1.2rem;
+            border-radius: 30px;
+        }
+
         /* 课表主体：周次卡片列表 */
         .week-list {
             padding: 1.2rem 1.5rem 2rem 1.5rem;
@@ -108,9 +167,14 @@
             border: 1px solid #eaf0f6;
             box-shadow: 0 6px 14px rgba(0,0,0,0.02);
             overflow: hidden;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .week-card.highlight-week {
+            border: 2px solid #3070a5;
+            box-shadow: 0 12px 28px rgba(0,80,130,0.15);
         }
 
-        /* 周标题 (始终占一行) */
+        /* 周标题 */
         .week-title {
             padding: 1.2rem 1.5rem 0.6rem 1.5rem;
             display: flex;
@@ -143,7 +207,7 @@
             font-weight: 460;
         }
 
-        /* 两天内容的容器：移动端上下，桌面并排 */
+        /* 两天内容的容器 */
         .days-container {
             display: flex;
             flex-direction: column;
@@ -151,9 +215,18 @@
             gap: 1.5rem;
         }
 
-        /* 单个天 (周六/周日) */
+        /* 单个天 */
         .day-block {
             flex: 1;
+            scroll-margin-top: 20px; /* 平滑滚动偏移 */
+        }
+        .day-block.highlight-day {
+            background: #f0f8ff;
+            border-radius: 24px;
+            padding: 0.8rem;
+            margin: -0.8rem;
+            box-shadow: 0 0 0 3px #99c1e3;
+            transition: all 0.2s;
         }
 
         .day-label {
@@ -182,7 +255,6 @@
             gap: 12px;
         }
 
-        /* 课程卡片 */
         .course-card {
             background: #ffffff;
             border-radius: 20px;
@@ -194,10 +266,10 @@
             border-left-style: solid;
         }
         .course-card.sat-card {
-            border-left-color: #99c1e3; /* 柔蓝 */
+            border-left-color: #99c1e3;
         }
         .course-card.sun-card {
-            border-left-color: #94cfc1; /* 柔绿 */
+            border-left-color: #94cfc1;
         }
 
         .course-header {
@@ -315,14 +387,12 @@
             white-space: nowrap;
         }
 
-        /* 响应式：当宽度大于640px时，周六周日并排 */
+        /* 响应式 */
         @media (min-width: 640px) {
             .days-container {
                 flex-direction: row;
             }
         }
-
-        /* 小屏微调 */
         @media (max-width: 480px) {
             .header h1 {
                 font-size: 1.5rem;
@@ -335,13 +405,14 @@
             .location {
                 margin-left: 0;
             }
-            .course-meta {
-                gap: 8px;
-            }
             .room-fixed {
                 white-space: normal;
                 text-align: center;
                 width: 100%;
+            }
+            .jump-bar {
+                flex-direction: column;
+                align-items: stretch;
             }
         }
     </style>
@@ -362,7 +433,17 @@
             </div>
         </div>
 
-        <!-- 课表主体将动态生成 -->
+        <!-- 快速定位栏 -->
+        <div class="jump-bar">
+            <span class="jump-label">📍 定位到：</span>
+            <div class="jump-input">
+                <input type="text" id="weekOrDateInput" placeholder="输入周数 (如 5) 或日期 (如 2026-03-14)" value="">
+                <button id="jumpBtn">跳转</button>
+            </div>
+            <span class="hint">支持周数 1-17 或日期 YYYY-MM-DD</span>
+        </div>
+
+        <!-- 课表主体动态生成 -->
         <div id="schedule-container" class="week-list"></div>
 
         <div class="footer">
@@ -452,73 +533,184 @@
 
             // 渲染
             const container = document.getElementById('schedule-container');
-            let html = '';
+            function renderWeeks() {
+                let html = '';
 
-            for (let w = 1; w <= MAX_WEEK; w++) {
-                const monday = getMondayDate(w);
-                const sunday = new Date(monday);
-                sunday.setDate(monday.getDate() + 6);
-                const formatDate = (d) => `${d.getMonth()+1}.${d.getDate()}`;
-                const dateRange = `${formatDate(monday)} – ${formatDate(sunday)}`;
+                for (let w = 1; w <= MAX_WEEK; w++) {
+                    const monday = getMondayDate(w);
+                    const sunday = new Date(monday);
+                    sunday.setDate(monday.getDate() + 6);
+                    const formatDate = (d) => `${d.getMonth()+1}.${d.getDate()}`;
+                    const dateRange = `${formatDate(monday)} – ${formatDate(sunday)}`;
 
-                const satCourses = weekMap[w].sat;
-                const sunCourses = weekMap[w].sun;
+                    const satCourses = weekMap[w].sat;
+                    const sunCourses = weekMap[w].sun;
 
-                // 周六卡片
-                const satCards = satCourses.length === 0
-                    ? '<div class="empty-message">— 无课程 —</div>'
-                    : satCourses.map(c => `
-                        <div class="course-card sat-card">
-                            <div class="course-header">
-                                <span class="course-name">${c.name}</span>
-                                <span class="teacher">${c.teacher}</span>
+                    // 周六卡片
+                    const satCards = satCourses.length === 0
+                        ? '<div class="empty-message">— 无课程 —</div>'
+                        : satCourses.map(c => `
+                            <div class="course-card sat-card">
+                                <div class="course-header">
+                                    <span class="course-name">${c.name}</span>
+                                    <span class="teacher">${c.teacher}</span>
+                                </div>
+                                <div class="course-meta">
+                                    <span class="section-badge">${c.section}节</span>
+                                    <span class="time-badge">${c.timeRange}</span>
+                                    <span class="location">教5-205</span>
+                                </div>
                             </div>
-                            <div class="course-meta">
-                                <span class="section-badge">${c.section}节</span>
-                                <span class="time-badge">${c.timeRange}</span>
-                                <span class="location">教5-205</span>
+                        `).join('');
+
+                    // 周日卡片
+                    const sunCards = sunCourses.length === 0
+                        ? '<div class="empty-message">— 无课程 —</div>'
+                        : sunCourses.map(c => `
+                            <div class="course-card sun-card">
+                                <div class="course-header">
+                                    <span class="course-name">${c.name}</span>
+                                    <span class="teacher">${c.teacher}</span>
+                                </div>
+                                <div class="course-meta">
+                                    <span class="section-badge">${c.section}节</span>
+                                    <span class="time-badge">${c.timeRange}</span>
+                                    <span class="location">教5-205</span>
+                                </div>
+                            </div>
+                        `).join('');
+
+                    html += `
+                        <div class="week-card" data-week="${w}" data-monday="${monday.toISOString().split('T')[0]}">
+                            <div class="week-title">
+                                <div class="week-number">第 ${w} <small>周</small></div>
+                                <div class="week-date">${dateRange}</div>
+                            </div>
+                            <div class="days-container">
+                                <div class="day-block" data-day="sat">
+                                    <div class="day-label"><span>星期六</span></div>
+                                    <div class="course-list">${satCards}</div>
+                                </div>
+                                <div class="day-block" data-day="sun">
+                                    <div class="day-label"><span>星期日</span></div>
+                                    <div class="course-list">${sunCards}</div>
+                                </div>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                }
 
-                // 周日卡片
-                const sunCards = sunCourses.length === 0
-                    ? '<div class="empty-message">— 无课程 —</div>'
-                    : sunCourses.map(c => `
-                        <div class="course-card sun-card">
-                            <div class="course-header">
-                                <span class="course-name">${c.name}</span>
-                                <span class="teacher">${c.teacher}</span>
-                            </div>
-                            <div class="course-meta">
-                                <span class="section-badge">${c.section}节</span>
-                                <span class="time-badge">${c.timeRange}</span>
-                                <span class="location">教5-205</span>
-                            </div>
-                        </div>
-                    `).join('');
-
-                html += `
-                    <div class="week-card">
-                        <div class="week-title">
-                            <div class="week-number">第 ${w} <small>周</small></div>
-                            <div class="week-date">${dateRange}</div>
-                        </div>
-                        <div class="days-container">
-                            <div class="day-block">
-                                <div class="day-label"><span>星期六</span></div>
-                                <div class="course-list">${satCards}</div>
-                            </div>
-                            <div class="day-block">
-                                <div class="day-label"><span>星期日</span></div>
-                                <div class="course-list">${sunCards}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                container.innerHTML = html;
             }
 
-            container.innerHTML = html;
+            renderWeeks();
+
+            // ---------- 定位功能 ----------
+            const jumpBtn = document.getElementById('jumpBtn');
+            const inputField = document.getElementById('weekOrDateInput');
+
+            // 移除所有高亮class
+            function clearHighlights() {
+                document.querySelectorAll('.week-card').forEach(card => {
+                    card.classList.remove('highlight-week');
+                });
+                document.querySelectorAll('.day-block').forEach(block => {
+                    block.classList.remove('highlight-day');
+                });
+            }
+
+            // 根据周数和可选的天 (sat/sun) 进行高亮和滚动
+            function jumpToWeek(weekNum, targetDay = null) {
+                if (weekNum < 1 || weekNum > MAX_WEEK) {
+                    alert(`请输入1-${MAX_WEEK}之间的周数或有效日期`);
+                    return false;
+                }
+
+                clearHighlights();
+
+                // 找到对应周卡片
+                const weekCard = document.querySelector(`.week-card[data-week="${weekNum}"]`);
+                if (!weekCard) return false;
+
+                // 高亮周卡片
+                weekCard.classList.add('highlight-week');
+
+                // 如果指定了周六或周日，高亮对应的day-block
+                if (targetDay === 'sat' || targetDay === 'sun') {
+                    const dayBlock = weekCard.querySelector(`.day-block[data-day="${targetDay}"]`);
+                    if (dayBlock) {
+                        dayBlock.classList.add('highlight-day');
+                        // 滚动到该day-block
+                        dayBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                        weekCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } else {
+                    // 只滚动到周卡片
+                    weekCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                return true;
+            }
+
+            // 解析日期，返回周数和星期几 (6=周六, 0=周日, 但注意JS星期天=0)
+            function getWeekFromDate(dateStr) {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return null;
+
+                // 基于第一周周一 2026-03-09
+                const firstMonday = new Date(2026, 2, 9); // 3月9日
+                // 计算天数差
+                const diffTime = date - firstMonday;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays < 0) return null; // 日期早于第一周周一
+
+                const weekNum = Math.floor(diffDays / 7) + 1;
+                if (weekNum > MAX_WEEK) return null;
+
+                const dayOfWeek = date.getDay(); // 0周日,1周一...6周六
+                // 根据dayOfWeek返回 sat/sun，只有周六(6)或周日(0)才定位到具体天
+                let targetDay = null;
+                if (dayOfWeek === 6) targetDay = 'sat';
+                else if (dayOfWeek === 0) targetDay = 'sun';
+                // 其他日子只定位到周卡片
+
+                return { weekNum, targetDay };
+            }
+
+            jumpBtn.addEventListener('click', () => {
+                const raw = inputField.value.trim();
+                if (!raw) return;
+
+                // 尝试解析为数字 (周数)
+                if (/^\d+$/.test(raw)) {
+                    const weekNum = parseInt(raw, 10);
+                    jumpToWeek(weekNum, null);
+                } 
+                // 尝试解析为日期 YYYY-MM-DD (或其他标准格式)
+                else {
+                    // 简单正则匹配 YYYY-MM-DD
+                    const datePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+                    if (datePattern.test(raw)) {
+                        const result = getWeekFromDate(raw);
+                        if (result) {
+                            jumpToWeek(result.weekNum, result.targetDay);
+                        } else {
+                            alert('日期不在学期范围内（第一周周一2026-03-09至第17周周日）');
+                        }
+                    } else {
+                        alert('请输入周数 (数字) 或日期 YYYY-MM-DD');
+                    }
+                }
+            });
+
+            // 回车支持
+            inputField.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    jumpBtn.click();
+                }
+            });
+
         })();
     </script>
 </body>
