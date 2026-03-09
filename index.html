@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周末课表 · 计算机学院 · 非全日制</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f5f7fb;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+            color: #1e2b3c;
+            line-height: 1.5;
+        }
+
+        .schedule {
+            max-width: 1280px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px -12px rgba(0,10,30,0.12), 0 4px 18px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        /* 头部 */
+        .header {
+            padding: 2rem 2.5rem 1.2rem 2.5rem;
+            border-bottom: 1px solid #eaeef4;
+            background: #ffffff;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 550;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #152b42;
+        }
+
+        .header h1 span {
+            background: #ecf3fa;
+            padding: 0.3rem 1.2rem;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 480;
+            color: #1e4f73;
+        }
+
+        .subhead {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .week-start {
+            background: #f0f4fa;
+            padding: 0.4rem 1.5rem;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 460;
+            color: #255e83;
+        }
+
+        .legend {
+            display: flex;
+            gap: 24px;
+            font-size: 0.9rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            background: #d0ddeb;
+        }
+        .dot.sat { background: #d4e0f0; }   /* 柔灰蓝 */
+        .dot.sun { background: #d9ebe4; }   /* 柔绿 */
+
+        /* 表格区域 */
+        .table-wrapper {
+            padding: 1rem 2rem 2rem 2rem;
+            overflow-x: auto;
+        }
+
+        .week-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        /* 隐藏表头，但保留用于语义 */
+        .week-table thead {
+            display: none;
+        }
+
+        /* 行卡片效果 */
+        .week-table tbody tr {
+            display: grid;
+            grid-template-columns: 140px 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 8px 8px 8px 0;
+            transition: box-shadow 0.2s;
+            border: 1px solid #f0f3f7;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.02);
+        }
+
+        /* 周次列 */
+        .week-col {
+            background: #f8fafd;
+            border-radius: 24px;
+            padding: 20px 12px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 2px solid #e3eaf2;
+        }
+
+        .week-num {
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #1c3f5c;
+            line-height: 1.2;
+        }
+
+        .week-num small {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #7a8d9f;
+            margin-left: 4px;
+        }
+
+        .date-range {
+            font-size: 0.8rem;
+            background: #e2eaf3;
+            display: inline-block;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+            margin-top: 12px;
+            color: #2b5577;
+            font-weight: 450;
+            align-self: flex-start;
+        }
+
+        /* 周六 & 周日列 */
+        .day-col {
+            padding: 8px 0;
+        }
+
+        .day-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8399ab;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .course-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 课程卡片 */
+        .course-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 16px 18px;
+            border: 1px solid #edf2f8;
+            box-shadow: 0 4px 12px rgba(0,20,40,0.02);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .course-card:hover {
+            border-color: #cdddec;
+            box-shadow: 0 12px 22px -12px rgba(25, 85, 130, 0.15);
+            background: #fcfdff;
+        }
+
+        /* 通过左侧小色条区分周六/周日 */
+        .course-card.sat {
+            border-left: 6px solid #b4cde0;
+        }
+        .course-card.sun {
+            border-left: 6px solid #b0d3c5;
+        }
+
+        .course-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .course-name {
+            font-weight: 620;
+            font-size: 1.06rem;
+            color: #1a354a;
+        }
+
+        .teacher {
+            background: #f0f4fb;
+            border-radius: 30px;
+            padding: 0.2rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #325b7c;
+        }
+
+        .meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .section {
+            background: #f2f6fc;
+            border-radius: 30px;
+            padding: 0.2rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 480;
+            color: #2d5272;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time {
+            background: #ffffff;
+            border: 1px solid #dde5ef;
+            border-radius: 30px;
+            padding: 0.2rem 1rem;
+            font-size: 0.8rem;
+            color: #456076;
+        }
+
+        .location {
+            margin-left: auto;
+            background: #e3ecf3;
+            border-radius: 30px;
+            padding: 0.2rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #2f5e7a;
+        }
+
+        .empty {
+            background: #f9fcff;
+            border-radius: 18px;
+            padding: 2.2rem 1rem;
+            text-align: center;
+            color: #9eb1c2;
+            font-size: 0.9rem;
+            border: 1px dashed #d3e0ec;
+        }
+
+        /* 底部时间索引 */
+        .footer {
+            padding: 1.5rem 2.5rem 2rem 2.5rem;
+            border-top: 1px solid #eaeef4;
+            background: #ffffff;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .time-index {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px 36px;
+        }
+
+        .time-index-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #2a4e6e;
+        }
+
+        .index-badge {
+            background: #ecf3fa;
+            border-radius: 30px;
+            padding: 0.2rem 1rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: #144a6f;
+        }
+
+        .room-badge {
+            background: #1d3d5c;
+            color: white;
+            border-radius: 60px;
+            padding: 0.6rem 2.2rem;
+            font-weight: 500;
+            font-size: 0.95rem;
+            box-shadow: 0 8px 18px -6px #1d3d5c40;
+        }
+    </style>
+</head>
+<body>
+    <div class="schedule">
+        <div class="header">
+            <h1>
+                📋 计算机学院 · 非全日制周末课表
+                <span>大学城校区</span>
+            </h1>
+            <div class="subhead">
+                <div class="week-start">📅 第一周从 2026.3.9 开始 · 共17周</div>
+                <div class="legend">
+                    <div class="legend-item"><span class="dot sat"></span> 周六课程</div>
+                    <div class="legend-item"><span class="dot sun"></span> 周日课程</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <!-- 表格将用js动态生成，但保留静态结构以便理解 -->
+            <div id="dynamic-schedule"></div>
+        </div>
+
+        <div class="footer">
+            <div class="time-index">
+                <span class="time-index-item"><span class="index-badge">1-4节</span> 08:30–12:00</span>
+                <span class="time-index-item"><span class="index-badge">5-8节</span> 13:50–17:15</span>
+                <span class="time-index-item"><span class="index-badge">1-8节</span> 08:30–17:15</span>
+                <span class="time-index-item"><span class="index-badge">其他</span> 按节次组合</span>
+            </div>
+            <div class="room-badge">
+                🏫 固定教室 · 教5-205
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---- 节次时间映射 ----
+            const sectionTimes = {
+                1: '08:30', 2: '09:20', 3: '10:25', 4: '11:15',
+                5: '13:50', 6: '14:40', 7: '15:30', 8: '16:30',
+                9: '17:20', 10: '18:30', 11: '19:20', 12: '20:10'
+            };
+            const sectionEnds = {
+                1: '09:15', 2: '10:05', 3: '11:10', 4: '12:00',
+                5: '14:35', 6: '15:25', 7: '16:15', 8: '17:15',
+                9: '18:05', 10: '19:15', 11: '20:05', 12: '20:55'
+            };
+            const formatTime = (secStr) => {
+                const parts = secStr.split('-');
+                if (parts.length !== 2) return secStr;
+                const s = parseInt(parts[0], 10), e = parseInt(parts[1], 10);
+                if (isNaN(s) || isNaN(e)) return secStr;
+                return `${sectionTimes[s] || '?'}–${sectionEnds[e] || '?'}`;
+            };
+
+            // ---- 课程数据 ----
+            const courses = [
+                { name: '云计算与大数据技术', teacher: '杨劲涛', weeks: [{ start: 1, end: 4 }], day: 'sun', section: '1-8' },
+                { name: '学术论文写作', teacher: '陈佳洲', weeks: [{ start: 5, end: 6 }], day: 'sat', section: '1-8' },
+                { name: '模式识别与机器学习', teacher: '汪明慧', weeks: [{ start: 5, end: 7 }], day: 'sun', section: '1-8' },
+                { name: '智能机器人', teacher: '何元烈', weeks: [{ start: 1, end: 4 }, { start: 9, end: 12 }], day: 'sat', section: '1-4' },
+                { name: '深度学习', teacher: '万继红', weeks: [{ start: 9, end: 14 }, { start: 16, end: 17 }], day: 'sat', section: '5-8' },
+                { name: '软件设计模式', teacher: '崔洪刚', weeks: [{ start: 9, end: 12 }], day: 'sun', section: '1-4' }
+            ];
+
+            const MAX_WEEK = 17;
+            const FIRST_MONDAY = new Date(2026, 2, 9); // 3月9日
+
+            const getMondayDate = (week) => {
+                const d = new Date(FIRST_MONDAY);
+                d.setDate(FIRST_MONDAY.getDate() + (week - 1) * 7);
+                return d;
+            };
+
+            // 初始化 weekData[week][day] = []
+            const weekData = {};
+            for (let w = 1; w <= MAX_WEEK; w++) {
+                weekData[w] = { sat: [], sun: [] };
+            }
+
+            // 填充课程
+            courses.forEach(c => {
+                const dayKey = c.day; // 'sat' or 'sun'
+                c.weeks.forEach(range => {
+                    for (let w = range.start; w <= range.end; w++) {
+                        if (w >= 1 && w <= MAX_WEEK) {
+                            weekData[w][dayKey].push({
+                                name: c.name,
+                                teacher: c.teacher,
+                                section: c.section,
+                                timeRange: formatTime(c.section),
+                                order: parseInt(c.section.split('-')[0], 10) || 99,
+                                day: c.day
+                            });
+                        }
+                    }
+                });
+            });
+
+            // 按节次排序
+            for (let w = 1; w <= MAX_WEEK; w++) {
+                ['sat', 'sun'].forEach(day => {
+                    weekData[w][day].sort((a, b) => a.order - b.order);
+                });
+            }
+
+            // 生成 HTML
+            const container = document.getElementById('dynamic-schedule');
+            let html = '<div class="week-table">';
+
+            for (let w = 1; w <= MAX_WEEK; w++) {
+                const monday = getMondayDate(w);
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                const dateFormat = (date) => `${date.getMonth()+1}.${date.getDate()}`;
+                const rangeStr = `${dateFormat(monday)} – ${dateFormat(sunday)}`;
+
+                const satCourses = weekData[w].sat;
+                const sunCourses = weekData[w].sun;
+
+                // 构建周六卡片HTML
+                const satHtml = satCourses.length === 0
+                    ? '<div class="empty">暂未安排</div>'
+                    : satCourses.map(c => `
+                        <div class="course-card sat">
+                            <div class="course-header">
+                                <span class="course-name">${c.name}</span>
+                                <span class="teacher">${c.teacher}</span>
+                            </div>
+                            <div class="meta">
+                                <span class="section">${c.section} 节</span>
+                                <span class="time">${c.timeRange}</span>
+                                <span class="location">教5-205</span>
+                            </div>
+                        </div>
+                    `).join('');
+
+                // 构建周日卡片HTML
+                const sunHtml = sunCourses.length === 0
+                    ? '<div class="empty">暂未安排</div>'
+                    : sunCourses.map(c => `
+                        <div class="course-card sun">
+                            <div class="course-header">
+                                <span class="course-name">${c.name}</span>
+                                <span class="teacher">${c.teacher}</span>
+                            </div>
+                            <div class="meta">
+                                <span class="section">${c.section} 节</span>
+                                <span class="time">${c.timeRange}</span>
+                                <span class="location">教5-205</span>
+                            </div>
+                        </div>
+                    `).join('');
+
+                // 构建行 (模拟表格行，但使用grid)
+                html += `
+                    <div class="week-table-row" style="display: grid; grid-template-columns: 140px 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                        <div class="week-col">
+                            <div class="week-num">第 ${w} <small>周</small></div>
+                            <div class="date-range">${rangeStr}</div>
+                        </div>
+                        <div class="day-col">
+                            <div class="day-label">星期六</div>
+                            <div class="course-list">${satHtml}</div>
+                        </div>
+                        <div class="day-col">
+                            <div class="day-label">星期日</div>
+                            <div class="course-list">${sunHtml}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        })();
+    </script>
+
+    <!-- 确保任何情况下都无侵入样式 -->
+</body>
+</html>
